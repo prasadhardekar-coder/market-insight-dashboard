@@ -2,10 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @layer base {
   :root {
+    :root{
+    --bg-color:#f5f7fb;
+    --card-color:#ffffff;
+    --text-primary:#111827;
+    --text-secondary:#6b7280;
+    --border-color:#e5e7eb;
+}
     --background: 220 20% 7%;
     --foreground: 210 20% 92%;
 
