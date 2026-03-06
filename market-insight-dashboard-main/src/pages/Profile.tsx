@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, User, Settings, LogOut, Mail, Phone, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,31 +9,62 @@ import { Switch } from "@/components/ui/switch";
 
 export default function Profile() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("auth_user") || '{"email":"user@demo.com","phone":""}');
 
-  const [email, setEmail] = useState(user.email);
-  const [phone, setPhone] = useState(user.phone || "");
-  const [name, setName] = useState(user.name || "");
+  const [user, setUser] = useState<any>(null);
+
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [name, setName] = useState("");
+
   const [notifications, setNotifications] = useState(true);
   const [darkCharts, setDarkCharts] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [saved, setSaved] = useState(false);
 
+  // 🔒 Protect Route + Load User
+  useEffect(() => {
+    const storedUser = localStorage.getItem("auth_user");
+
+    if (!storedUser) {
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      setEmail(parsedUser.email || "");
+      setPhone(parsedUser.phone || "");
+      setName(parsedUser.name || "");
+    } catch {
+      localStorage.removeItem("auth_user");
+      navigate("/login", { replace: true });
+    }
+  }, [navigate]);
+
   const handleSave = () => {
-    localStorage.setItem("auth_user", JSON.stringify({ email, phone, name }));
+    const updatedUser = { email, phone, name };
+    localStorage.setItem("auth_user", JSON.stringify(updatedUser));
+    setUser(updatedUser);
+
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   const handleLogout = () => {
     localStorage.removeItem("auth_user");
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
+
+  if (!user) return null; // Prevent render before auth check
 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate("/")} className="text-muted-foreground hover:text-foreground transition-colors">
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+        >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-lg font-bold">Profile & Settings</h1>
@@ -42,8 +73,12 @@ export default function Profile() {
       <main className="max-w-2xl mx-auto p-6">
         <Tabs defaultValue="profile">
           <TabsList className="mb-6 bg-secondary">
-            <TabsTrigger value="profile" className="gap-2"><User className="w-4 h-4" /> Details</TabsTrigger>
-            <TabsTrigger value="settings" className="gap-2"><Settings className="w-4 h-4" /> Settings</TabsTrigger>
+            <TabsTrigger value="profile" className="gap-2">
+              <User className="w-4 h-4" /> Details
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="gap-2">
+              <Settings className="w-4 h-4" /> Settings
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile">
@@ -60,29 +95,54 @@ export default function Profile() {
 
               <div>
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="mt-1 bg-secondary border-border" />
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  className="mt-1 bg-secondary border-border"
+                />
               </div>
+
               <div>
                 <Label htmlFor="email2">Email</Label>
                 <div className="relative mt-1">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input id="email2" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-secondary border-border pl-10" />
+                  <Input
+                    id="email2"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="bg-secondary border-border pl-10"
+                  />
                 </div>
               </div>
+
               <div>
                 <Label htmlFor="phone2">Phone</Label>
                 <div className="relative mt-1">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input id="phone2" value={phone} onChange={(e) => setPhone(e.target.value)} className="bg-secondary border-border pl-10" />
+                  <Input
+                    id="phone2"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="bg-secondary border-border pl-10"
+                  />
                 </div>
               </div>
 
               <div className="flex gap-3 pt-2">
                 <Button onClick={handleSave} className="gap-2">
-                  <Save className="w-4 h-4" /> {saved ? "Saved!" : "Save Changes"}
+                  <Save className="w-4 h-4" />
+                  {saved ? "Saved!" : "Save Changes"}
                 </Button>
-                <Button variant="destructive" onClick={handleLogout} className="gap-2">
-                  <LogOut className="w-4 h-4" /> Log Out
+
+                <Button
+                  variant="destructive"
+                  onClick={handleLogout}
+                  className="gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Log Out
                 </Button>
               </div>
             </div>
@@ -93,23 +153,40 @@ export default function Profile() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-medium">Push Notifications</div>
-                  <div className="text-sm text-muted-foreground">Receive alerts for price changes and predictions</div>
+                  <div className="text-sm text-muted-foreground">
+                    Receive alerts for price changes and predictions
+                  </div>
                 </div>
-                <Switch checked={notifications} onCheckedChange={setNotifications} />
+                <Switch
+                  checked={notifications}
+                  onCheckedChange={setNotifications}
+                />
               </div>
+
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-medium">Dark Charts</div>
-                  <div className="text-sm text-muted-foreground">Use dark theme for chart visualizations</div>
+                  <div className="text-sm text-muted-foreground">
+                    Use dark theme for chart visualizations
+                  </div>
                 </div>
-                <Switch checked={darkCharts} onCheckedChange={setDarkCharts} />
+                <Switch
+                  checked={darkCharts}
+                  onCheckedChange={setDarkCharts}
+                />
               </div>
+
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-medium">Auto-Refresh Data</div>
-                  <div className="text-sm text-muted-foreground">Automatically refresh market data every 30 seconds</div>
+                  <div className="text-sm text-muted-foreground">
+                    Automatically refresh market data every 30 seconds
+                  </div>
                 </div>
-                <Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} />
+                <Switch
+                  checked={autoRefresh}
+                  onCheckedChange={setAutoRefresh}
+                />
               </div>
             </div>
           </TabsContent>

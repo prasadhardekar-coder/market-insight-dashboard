@@ -1,14 +1,25 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
-const Index = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
-};
+export default function Index() {
+  const navigate = useNavigate();
 
-export default Index;
+  useEffect(() => {
+    const storedUser = localStorage.getItem("auth_user");
+
+    if (!storedUser) {
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    try {
+      JSON.parse(storedUser);
+      navigate("/dashboard", { replace: true });
+    } catch {
+      localStorage.removeItem("auth_user");
+      navigate("/login", { replace: true });
+    }
+  }, [navigate]);
+
+  return null; // No UI needed, this is just a redirect handler
+}

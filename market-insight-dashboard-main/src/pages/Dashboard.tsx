@@ -18,12 +18,15 @@ export default function Dashboard() {
   const [symbol, setSymbol] = useState("AAPL");
   const navigate = useNavigate();
 
+  const storedUser = localStorage.getItem("auth_user");
+  const user = storedUser ? JSON.parse(storedUser) : null;
+
   const handleLogout = () => {
     localStorage.removeItem("auth_user");
     navigate("/login");
   };
 
-  const user = JSON.parse(localStorage.getItem("auth_user") || '{"email":"user@demo.com"}');
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -32,25 +35,38 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           <BarChart3 className="w-6 h-6 text-primary" />
           <h1 className="text-lg font-bold tracking-tight">SentimentAI</h1>
-          <span className="text-xs text-muted-foreground font-mono bg-secondary px-2 py-0.5 rounded">LIVE</span>
+          <span className="text-xs text-muted-foreground font-mono bg-secondary px-2 py-0.5 rounded">
+            LIVE
+          </span>
         </div>
+
         <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground hidden sm:block">{user.email}</span>
+          <span className="text-sm text-muted-foreground hidden sm:block">
+            {user.email}
+          </span>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center hover:bg-primary/30 transition-colors">
                 <User className="w-4 h-4 text-primary" />
               </button>
             </DropdownMenuTrigger>
+
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem onClick={() => navigate("/profile")}>
                 <User className="w-4 h-4 mr-2" /> Profile
               </DropdownMenuItem>
+
               <DropdownMenuItem onClick={() => navigate("/profile")}>
                 <Settings className="w-4 h-4 mr-2" /> Settings
               </DropdownMenuItem>
+
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="text-destructive"
+              >
                 <LogOut className="w-4 h-4 mr-2" /> Log out
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -58,9 +74,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Dashboard grid */}
       <main className="flex-1 p-4 grid grid-cols-1 lg:grid-cols-[7fr_3fr] gap-4 min-h-0">
-        {/* Left column */}
         <div className="flex flex-col gap-4 min-h-0">
           <div className="flex-1 min-h-[350px]">
             <MarketChart symbol={symbol} onSymbolChange={setSymbol} />
@@ -70,7 +84,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Right column */}
         <div className="flex flex-col gap-4 min-h-0">
           <div className="flex-1 min-h-[350px]">
             <NewsFeed symbol={symbol} />

@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+const API_BASE =
+  import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 export interface Prediction {
   direction: "Bullish" | "Bearish" | "Neutral";
@@ -6,20 +7,42 @@ export interface Prediction {
   currentPrice: number;
   confidence: number;
   factors: { text: string; positive: boolean }[];
-  probability: { bullish: number; bearish: number; neutral: number };
+  probability: {
+    bullish: number;
+    bearish: number;
+    neutral: number;
+  };
 }
 
 function generateMockPrediction(symbol: string): Prediction {
   const prices: Record<string, number> = {
-    AAPL: 178.5, TSLA: 249.2, NVDA: 892.4, RELIANCE: 2460, TCS: 3835,
+    AAPL: 178.5,
+    TSLA: 249.2,
+    NVDA: 892.4,
+    RELIANCE: 2460,
+    TCS: 3835,
   };
-  const current = prices[symbol] || 100;
-  const dirs: Prediction["direction"][] = ["Bullish", "Bearish", "Neutral"];
-  const dir = dirs[Math.floor(Math.random() * 2)]; // bias toward bullish/bearish
-  const change = dir === "Bullish" ? current * 0.03 : dir === "Bearish" ? -current * 0.02 : current * 0.002;
+
+  const current = prices[symbol] ?? 100;
+
+  const directions: Prediction["direction"][] = [
+    "Bullish",
+    "Bearish",
+    "Neutral",
+  ];
+
+  const direction =
+    directions[Math.floor(Math.random() * directions.length)];
+
+  const change =
+    direction === "Bullish"
+      ? current * 0.03
+      : direction === "Bearish"
+      ? -current * 0.02
+      : current * 0.002;
 
   return {
-    direction: dir,
+    direction,
     predictedPrice: +(current + change).toFixed(2),
     currentPrice: current,
     confidence: Math.floor(Math.random() * 25) + 65,
@@ -38,10 +61,19 @@ function generateMockPrediction(symbol: string): Prediction {
   };
 }
 
-export async function fetchPrediction(symbol: string): Promise<Prediction> {
+export async function fetchPrediction(
+  symbol: string
+): Promise<Prediction> {
   try {
     const res = await fetch(`${API_BASE}/predict/${symbol}`);
-    if (res.ok) return res.json();
-  } catch {}
-  return generateMockPrediction(symbol);
+
+    if (!res.ok) {
+      throw new Error("Request failed");
+    }
+
+    const data: Prediction = await res.json();
+    return data;
+  } catch {
+    return generateMockPrediction(symbol);
+  }
 }

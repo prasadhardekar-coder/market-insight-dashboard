@@ -12,9 +12,11 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -28,9 +30,48 @@ export default function Login() {
       return;
     }
 
-    // Mock auth — store user and redirect
-    localStorage.setItem("auth_user", JSON.stringify({ email, phone }));
-    navigate("/");
+    try {
+      setLoading(true);
+
+      const endpoint = isSignUp
+        ? "http://localhost:8000/signup"
+        : "http://localhost:8000/login";
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(
+          isSignUp
+            ? { email, phone, password }
+            : { email, password }
+        ),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Something went wrong");
+      }
+
+      // Save logged-in user
+      if (!isSignUp) {
+        localStorage.setItem("auth_user", JSON.stringify(data.user));
+      } else {
+        // After signup, auto-login
+        localStorage.setItem(
+          "auth_user",
+          JSON.stringify({ email, phone })
+        );
+      }
+
+      navigate("/");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -40,12 +81,18 @@ export default function Login() {
           <div className="flex items-center justify-center gap-2 mb-4">
             <BarChart3 className="w-10 h-10 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">SentimentAI</h1>
-          <p className="text-sm text-muted-foreground mt-1">AI-Powered Stock Market Intelligence</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            SentimentAI
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            AI-Powered Stock Market Intelligence
+          </p>
         </div>
 
         <div className="glass-card p-6">
-          <h2 className="text-lg font-semibold mb-4">{isSignUp ? "Create Account" : "Welcome Back"}</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            {isSignUp ? "Create Account" : "Welcome Back"}
+          </h2>
 
           {error && (
             <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg p-3 mb-4">
@@ -54,6 +101,7 @@ export default function Login() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email */}
             <div>
               <Label htmlFor="email">Email</Label>
               <Input
@@ -66,6 +114,7 @@ export default function Login() {
               />
             </div>
 
+            {/* Phone (Sign Up Only) */}
             {isSignUp && (
               <div>
                 <Label htmlFor="phone">Phone Number</Label>
@@ -80,6 +129,7 @@ export default function Login() {
               </div>
             )}
 
+            {/* Password */}
             <div>
               <Label htmlFor="password">Password</Label>
               <div className="relative mt-1">
@@ -96,22 +146,37 @@ export default function Login() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" /> }
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
             </div>
 
-            <Button type="submit" className="w-full">
-              {isSignUp ? "Sign Up" : "Log In"}
+            {/* Submit */}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading
+                ? "Please wait..."
+                : isSignUp
+                ? "Sign Up"
+                : "Log In"}
             </Button>
           </form>
 
+          {/* Toggle */}
           <div className="mt-4 text-center">
             <button
-              onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError("");
+              }}
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
-              {isSignUp ? "Already have an account? Log in" : "Don't have an account? Sign up"}
+              {isSignUp
+                ? "Already have an account? Log in"
+                : "Don't have an account? Sign up"}
             </button>
           </div>
         </div>
