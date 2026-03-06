@@ -46,8 +46,8 @@ export default function MarketChart({ symbol, onSymbolChange }: Props) {
         >
           <option value="AAPL">Apple</option>
           <option value="TSLA">Tesla</option>
-          <option value="TCS">TCS</option>
-          <option value="RELIANCE">reliance</option>
+          <option value="MSFT">Microsoft</option>
+          <option value="GOOGL">Google</option>
           <option value="NVDA">Nvidia</option>
         </select>
       </div>

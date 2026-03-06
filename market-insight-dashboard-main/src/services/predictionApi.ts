@@ -19,8 +19,8 @@ function generateMockPrediction(symbol: string): Prediction {
     AAPL: 178.5,
     TSLA: 249.2,
     NVDA: 892.4,
-    RELIANCE: 2460,
-    TCS: 3835,
+    GOOGL: 142.3,   
+    MSFT: 415.8    
   };
 
   const current = prices[symbol] ?? 100;

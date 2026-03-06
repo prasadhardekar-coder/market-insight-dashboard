@@ -14,7 +14,7 @@ export interface MarketData {
 // Mock data generator
 function generateMockMarketData(symbol: string, timeframe: string): MarketData[] {
   const basePrice: Record<string, number> = {
-    AAPL: 178, TSLA: 248, NVDA: 890, RELIANCE: 2450, TCS: 3820,
+    AAPL: 178, TSLA: 248, NVDA: 890,  GOOGL: 142.3, MSFT: 415.8     
   };
   const base = basePrice[symbol] || 100;
   const count = timeframe === "1m" ? 60 : timeframe === "5m" ? 48 : timeframe === "1h" ? 24 : timeframe === "1d" ? 30 : 12;
