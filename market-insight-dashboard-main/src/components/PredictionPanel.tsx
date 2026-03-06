@@ -1,179 +1,145 @@
-import { useState, useEffect } from "react";
-import { fetchPrediction } from "../services/predictionApi";
-import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Target,
-} from "lucide-react";
+import { useEffect, useState } from "react";
 
-type Direction = "Bullish" | "Bearish" | "Neutral";
-
-interface PredictionResponse {
-  direction?: Direction;
-  predicted_price?: number;
-  confidence?: number;
-  key_factors?: string[];
+interface PredictionData {
+  direction: string;
+  predicted_price: number;
+  confidence: number;
 }
 
-interface PredictionPanelProps {
+interface Props {
   symbol: string;
 }
 
-const dirConfig = {
-  Bullish: {
-    color: "text-bullish",
-    bg: "bg-bullish/10",
-    icon: TrendingUp,
-  },
-  Bearish: {
-    color: "text-bearish",
-    bg: "bg-bearish/10",
-    icon: TrendingDown,
-  },
-  Neutral: {
-    color: "text-neutral",
-    bg: "bg-neutral/10",
-    icon: Minus,
-  },
-} as const;
+export default function PredictionPanel({ symbol }: Props) {
+  const [data, setData] = useState<PredictionData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [error, setError] = useState("");
 
-export default function PredictionPanel({
-  symbol,
-}: PredictionPanelProps) {
-  const [prediction, setPrediction] =
-    useState<PredictionResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
+  // Fetch Prediction
   useEffect(() => {
-    let ignore = false;
-
-    const load = async () => {
-      setLoading(true);
-      setError(false);
-
-      try {
-        const data = await fetchPrediction(symbol);
-        if (!ignore) setPrediction(data ?? null);
-      } catch {
-        if (!ignore) {
-          setError(true);
-          setPrediction(null);
-        }
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    };
-
-    load();
-    return () => {
-      ignore = true;
-    };
+    fetchPrediction();
   }, [symbol]);
 
-  if (loading) {
-    return (
-      <div className="glass-card p-4 h-full flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const fetchPrediction = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-  if (error || !prediction) {
-    return (
-      <div className="glass-card p-4 h-full flex items-center justify-center">
-        <p className="text-muted-foreground">
-          Unable to load prediction data
-        </p>
-      </div>
-    );
-  }
+      const res = await fetch(
+        `http://127.0.0.1:8000/predict/${symbol}`
+      );
 
-  // Safe fallback values
-  const direction: Direction = prediction.direction ?? "Neutral";
-  const predictedPrice = prediction.predicted_price ?? 0;
-  const confidence = prediction.confidence ?? 0;
-  const keyFactors = prediction.key_factors ?? [];
+      if (!res.ok) throw new Error("Prediction failed");
 
-  const cfg = dirConfig[direction];
-  const Icon = cfg.icon;
+      const result = await res.json();
+      setData(result);
+    } catch (err: any) {
+      setError("Failed to load prediction");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Download PDF
+  const downloadReport = async () => {
+    try {
+      setDownloading(true);
+
+      const res = await fetch(
+        `http://127.0.0.1:8000/download-report/${symbol}`
+      );
+
+      if (!res.ok) throw new Error("Download failed");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${symbol}_AI_Report.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Report generation failed");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const getDirectionColor = () => {
+    if (!data) return "";
+    if (data.direction === "Bullish") return "text-green-500";
+    if (data.direction === "Bearish") return "text-red-500";
+    return "text-yellow-400";
+  };
 
   return (
-    <div className="glass-card p-4 h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
-        <Target className="w-4 h-4 text-primary" />
-        <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-          AI Prediction
-        </span>
-        <span className="ml-auto text-xs text-muted-foreground font-mono">
-          {symbol}
-        </span>
-      </div>
+    <div className="bg-card border border-border rounded-xl p-6 h-full flex flex-col justify-between">
+      <div>
+        <h2 className="text-lg font-semibold mb-4">
+          🤖 AI Prediction Engine
+        </h2>
 
-      {/* Direction */}
-      <div className="flex items-center gap-4 mb-4">
-        <div className={`p-3 rounded-lg ${cfg.bg}`}>
-          <Icon className={`w-8 h-8 ${cfg.color}`} />
-        </div>
-        <div>
-          <div className={`text-2xl font-bold ${cfg.color}`}>
-            {direction}
-          </div>
-          <div className="text-sm text-muted-foreground">
-            AI Market Direction
-          </div>
-        </div>
-      </div>
+        {loading && (
+          <p className="text-muted-foreground">Generating prediction...</p>
+        )}
 
-      {/* Predicted Price */}
-      <div className="bg-secondary rounded-lg p-4 mb-4">
-        <div className="text-xs text-muted-foreground mb-1">
-          Predicted Price
-        </div>
-        <div className="font-mono text-2xl font-bold">
-          ${predictedPrice.toFixed(2)}
-        </div>
-      </div>
+        {error && (
+          <p className="text-red-500">{error}</p>
+        )}
 
-      {/* Confidence */}
-      <div className="bg-secondary rounded-lg p-4 mb-4">
-        <div className="text-xs text-muted-foreground mb-2">
-          Confidence
-        </div>
-        <div className="font-mono text-lg font-bold mb-2">
-          {confidence}%
-        </div>
-        <div className="w-full bg-muted rounded-full h-2">
-          <div
-            className="h-2 rounded-full bg-primary transition-all"
-            style={{
-              width: `${Math.min(Math.max(confidence, 0), 100)}%`,
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Key Factors */}
-      <div className="flex-1">
-        <div className="text-xs text-muted-foreground mb-2">
-          Key Influences
-        </div>
-        <div className="space-y-2">
-          {keyFactors.length === 0 ? (
-            <div className="text-sm text-muted-foreground">
-              No factors available
+        {data && !loading && (
+          <div className="space-y-3">
+            <div>
+              <span className="text-sm text-muted-foreground">
+                Predicted Direction
+              </span>
+              <p className={`text-xl font-bold ${getDirectionColor()}`}>
+                {data.direction}
+              </p>
             </div>
-          ) : (
-            keyFactors.map((factor, i) => (
-              <div key={i} className="text-sm text-secondary-foreground">
-                • {factor}
+
+            <div>
+              <span className="text-sm text-muted-foreground">
+                Predicted Price
+              </span>
+              <p className="text-lg font-semibold">
+                ${data.predicted_price}
+              </p>
+            </div>
+
+            <div>
+              <span className="text-sm text-muted-foreground">
+                Model Confidence
+              </span>
+              <p className="text-lg font-semibold">
+                {data.confidence}%
+              </p>
+
+              {/* Confidence bar */}
+              <div className="w-full bg-secondary rounded-full h-2 mt-2">
+                <div
+                  className="bg-primary h-2 rounded-full"
+                  style={{ width: `${data.confidence}%` }}
+                />
               </div>
-            ))
-          )}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Download Button */}
+      <button
+        onClick={downloadReport}
+        disabled={!data || downloading}
+        className="mt-6 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all disabled:opacity-50"
+      >
+        {downloading ? "Generating Report..." : "📄 Download Detailed Report"}
+      </button>
     </div>
   );
 }
