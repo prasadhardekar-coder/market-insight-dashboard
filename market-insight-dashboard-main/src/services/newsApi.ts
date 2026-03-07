@@ -1,39 +1,48 @@
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+const BASE_URL = "http://127.0.0.1:8000";
 
 export interface NewsItem {
   id: string;
   headline: string;
+  summary: string;
   source: string;
   timestamp: string;
   sentiment: "positive" | "neutral" | "negative";
-  url?: string;
-}
-
-const mockHeadlines: { headline: string; source: string; sentiment: NewsItem["sentiment"] }[] = [
-  { headline: "Tech stocks rally as AI demand surges", source: "Bloomberg", sentiment: "positive" },
-  { headline: "Federal Reserve signals potential rate cuts", source: "Reuters", sentiment: "positive" },
-  { headline: "Market volatility increases amid geopolitical tensions", source: "CNBC", sentiment: "negative" },
-  { headline: "Quarterly earnings beat expectations across sectors", source: "WSJ", sentiment: "positive" },
-  { headline: "Regulatory concerns weigh on semiconductor sector", source: "FT", sentiment: "negative" },
-  { headline: "New trade agreements boost market confidence", source: "Bloomberg", sentiment: "positive" },
-  { headline: "Oil prices stabilize after recent decline", source: "Reuters", sentiment: "neutral" },
-  { headline: "Tech layoffs continue but hiring in AI accelerates", source: "TechCrunch", sentiment: "neutral" },
-  { headline: "Record high consumer spending reported", source: "CNBC", sentiment: "positive" },
-  { headline: "Supply chain disruptions ease globally", source: "WSJ", sentiment: "positive" },
-];
-
-function generateMockNews(): NewsItem[] {
-  return mockHeadlines.map((item, i) => {
-    const date = new Date();
-    date.setHours(date.getHours() - i * 2);
-    return { ...item, id: `news-${i}`, timestamp: date.toISOString() };
-  });
+  category: string;
+  impact: string;
 }
 
 export async function fetchNews(symbol: string): Promise<NewsItem[]> {
-  try {
-    const res = await fetch(`${API_BASE}/news/${symbol}`);
-    if (res.ok) return res.json();
-  } catch {}
-  return generateMockNews();
+  const res = await fetch(`${BASE_URL}/news/${symbol}`);
+
+  if (!res.ok) throw new Error(`News fetch failed: ${res.status}`);
+
+  const data = await res.json();
+
+  // Backend returns { symbol, articles: [...] }
+  const articles = Array.isArray(data.articles) ? data.articles : [];
+
+  return articles.map((item: any, index: number): NewsItem => ({
+    id: `${symbol}-news-${index}`,
+    headline: item.headline ?? "No headline",
+    summary: item.summary ?? "",
+    source: item.category ?? "Financial News",
+    timestamp: item.published_at ?? new Date().toISOString(),
+    sentiment: normalizeImpact(item.impact),
+    category: item.category ?? "General",
+    impact: item.impact ?? "Neutral",
+  }));
 }
+
+function normalizeImpact(impact: string): "positive" | "neutral" | "negative" {
+  if (!impact) return "neutral";
+  const lower = impact.toLowerCase();
+  if (lower === "positive") return "positive";
+  if (lower === "negative") return "negative";
+  return "neutral";
+}
+
+
+
+
+
+
